@@ -347,4 +347,8 @@
 
 // #define IGNORE_FINDS
 
+#define MAX_FACTOR 32
+
+//#define AFLGO_TRACING
+
 #endif /* ! _HAVE_CONFIG_H */

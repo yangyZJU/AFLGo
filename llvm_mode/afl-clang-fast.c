@@ -123,6 +123,7 @@ static void edit_params(u32 argc, char** argv) {
   cc_params[cc_par_cnt++] = "-fsanitize-coverage=trace-pc-guard";
   cc_params[cc_par_cnt++] = "-mllvm";
   cc_params[cc_par_cnt++] = "-sanitizer-coverage-block-threshold=0";
+  WARNF("Disabling AFLGO features..\n");
 #else
   cc_params[cc_par_cnt++] = "-Xclang";
   cc_params[cc_par_cnt++] = "-load";
@@ -138,6 +139,11 @@ static void edit_params(u32 argc, char** argv) {
 
   while (--argc) {
     u8* cur = *(++argv);
+
+    if (!strncmp(cur, "-distance", 9)
+        || !strncmp(cur, "-targets", 8)
+        || !strncmp(cur, "-outdir", 7))
+      cc_params[cc_par_cnt++] = "-mllvm";
 
     if (!strcmp(cur, "-m32")) bit_mode = 32;
     if (!strcmp(cur, "-m64")) bit_mode = 64;
@@ -316,9 +322,9 @@ int main(int argc, char** argv) {
   if (isatty(2) && !getenv("AFL_QUIET")) {
 
 #ifdef USE_TRACE_PC
-    SAYF(cCYA "afl-clang-fast [tpcg] " cBRI VERSION  cRST " by <lszekeres@google.com>\n");
+    SAYF(cCYA "aflgo-compiler (yeah!) [tpcg] " cBRI VERSION  cRST "\n");
 #else
-    SAYF(cCYA "afl-clang-fast " cBRI VERSION  cRST " by <lszekeres@google.com>\n");
+    SAYF(cCYA "aflgo-compiler (yeah!) " cBRI VERSION  cRST "\n");
 #endif /* ^USE_TRACE_PC */
 
   }

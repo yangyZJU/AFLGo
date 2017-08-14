@@ -34,6 +34,22 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+#ifdef AFLGO_TRACING
+#include "../hash.h"
+#include "../hashset.h"
+#include <assert.h>
+
+/* Variables for profiling */
+hashset_t edgeSet;
+static FILE* filefd = NULL;
+static char edgeStr[1024];
+
+static const unsigned int prime_1 = 73;
+static const unsigned int prime_2 = 5009;
+/* End of profiling variables */
+#endif /* ^AFLGO_TRACING */
+
+
 /* This is a somewhat ugly hack for the experimental 'trace-pc-guard' mode.
    Basically, we need to make sure that the forkserver is initialized after
    the LLVM-generated runtime initialization pass, not before. */
@@ -49,7 +65,7 @@
    is used for instrumentation output before __afl_map_shm() has a chance to run.
    It will end up as .comm, so it shouldn't be too wasteful. */
 
-u8  __afl_area_initial[MAP_SIZE];
+u8  __afl_area_initial[MAP_SIZE + 16];
 u8* __afl_area_ptr = __afl_area_initial;
 
 __thread u32 __afl_prev_loc;
@@ -187,7 +203,7 @@ int __afl_persistent_loop(unsigned int max_cnt) {
 
     if (is_persistent) {
 
-      memset(__afl_area_ptr, 0, MAP_SIZE);
+      memset(__afl_area_ptr, 0, MAP_SIZE + 16);
       __afl_area_ptr[0] = 1;
       __afl_prev_loc = 0;
     }
@@ -304,3 +320,161 @@ void __sanitizer_cov_trace_pc_guard_init(uint32_t* start, uint32_t* stop) {
   }
 
 }
+
+
+#ifdef AFLGO_TRACING
+/* Hashset implementation for C */
+hashset_t hashset_create()
+{
+    hashset_t set = (hashset_t) calloc(1, sizeof(struct hashset_st));
+
+    if (set == NULL) {
+        return NULL;
+    }
+    set->nbits = 3;
+    set->capacity = (size_t)(1 << set->nbits);
+    set->mask = set->capacity - 1;
+    set->items = (unsigned long*) calloc(set->capacity, sizeof(size_t));
+    if (set->items == NULL) {
+        hashset_destroy(set);
+        return NULL;
+    }
+    set->nitems = 0;
+    set->n_deleted_items = 0;
+    return set;
+}
+
+size_t hashset_num_items(hashset_t set)
+{
+    return set->nitems;
+}
+
+void hashset_destroy(hashset_t set)
+{
+    if (set) {
+        free(set->items);
+    }
+    free(set);
+}
+
+static int hashset_add_member(hashset_t set, void *item)
+{
+    size_t value = (size_t)item;
+    size_t ii;
+
+    if (value == 0 || value == 1) {
+        return -1;
+    }
+
+    ii = set->mask & (prime_1 * value);
+
+    while (set->items[ii] != 0 && set->items[ii] != 1) {
+        if (set->items[ii] == value) {
+            return 0;
+        } else {
+            /* search free slot */
+            ii = set->mask & (ii + prime_2);
+        }
+    }
+    set->nitems++;
+    if (set->items[ii] == 1) {
+        set->n_deleted_items--;
+    }
+    set->items[ii] = value;
+    return 1;
+}
+
+static void maybe_rehash(hashset_t set)
+{
+    size_t *old_items;
+    size_t old_capacity, ii;
+
+
+    if (set->nitems + set->n_deleted_items >= (double)set->capacity * 0.85) {
+        old_items = set->items;
+        old_capacity = set->capacity;
+        set->nbits++;
+        set->capacity = (size_t)(1 << set->nbits);
+        set->mask = set->capacity - 1;
+        set->items = (unsigned long*) calloc(set->capacity, sizeof(size_t));
+        set->nitems = 0;
+        set->n_deleted_items = 0;
+        assert(set->items);
+        for (ii = 0; ii < old_capacity; ii++) {
+            hashset_add_member(set, (void *)old_items[ii]);
+        }
+        free(old_items);
+    }
+}
+
+int hashset_add(hashset_t set, void *item)
+{
+    int rv = hashset_add_member(set, item);
+    maybe_rehash(set);
+    return rv;
+}
+
+int hashset_remove(hashset_t set, void *item)
+{
+    size_t value = (size_t)item;
+    size_t ii = set->mask & (prime_1 * value);
+
+    while (set->items[ii] != 0) {
+        if (set->items[ii] == value) {
+            set->items[ii] = 1;
+            set->nitems--;
+            set->n_deleted_items++;
+            return 1;
+        } else {
+            ii = set->mask & (ii + prime_2);
+        }
+    }
+    return 0;
+}
+
+int hashset_is_member(hashset_t set, void *item)
+{
+    size_t value = (size_t)item;
+    size_t ii = set->mask & (prime_1 * value);
+
+    while (set->items[ii] != 0) {
+        if (set->items[ii] == value) {
+            return 1;
+        } else {
+            ii = set->mask & (ii + prime_2);
+        }
+    }
+    return 0;
+}
+
+/*End of hashset implementation for C */
+
+inline __attribute__((always_inline))
+void writeBB(const char* bbname) {
+    strcat(edgeStr, bbname);
+    size_t cksum=(size_t)hash32(bbname, strlen(edgeStr), 0xa5b35705);
+    if(!hashset_is_member(edgeSet,(void*)cksum)) {
+        fprintf(filefd, "[BB]: %s\n", bbname);
+        hashset_add(edgeSet, (void*)cksum);
+    }
+    strcpy(edgeStr, bbname);
+    fflush(filefd);
+}
+
+void llvm_profiling_call(const char* bbname)
+	__attribute__((visibility("default")));
+
+void llvm_profiling_call(const char* bbname) {
+    if (filefd != NULL) {
+        writeBB(bbname);
+    } else if (getenv("AFLGO_PROFILER_FILE")) {
+        filefd = fopen(getenv("AFLGO_PROFILER_FILE"), "a+");
+        if (filefd != NULL) {
+            strcpy(edgeStr, "START");
+            edgeSet = hashset_create();
+            fprintf(filefd, "--------------------------\n");
+            writeBB(bbname);
+        }
+    }
+}
+#endif /* ^AFLGO_TRACING */
