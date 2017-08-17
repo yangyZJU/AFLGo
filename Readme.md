@@ -9,3 +9,50 @@ Unlike AFL, AFLGo spends most of its time budget on reaching specific target loc
 * **information flow detection** by setting sensitive sources and sinks as targets. To expose data leakage vulnerabilities, a security researcher would like to generate executions that exercise sensitive sources containing private information and sensitive sinks where data becomes visible to the outside world. A directed fuzzer can be used to generate such executions efficiently.
 * **crash reproduction**  by setting method calls in the stack-trace as targets. When in-field crashes are reported, only the stack-trace and some environmental parameters are sent to the in-house development team. To preserve the user's privacy, the specific crashing input is often not available. AFLGo could help the in-house team to swiftly reproduce these crashes.
 
+# Integration into OSS-Fuzz
+The easiest way to use AFLGo is as patch testing tool in OSS-Fuzz. Here is our integration:
+* https://github.com/aflgo/oss-fuzz
+
+# How to use AFLGo
+1) Install <a href="https://llvm.org/docs/CMake.html" target="_blank">LLVM</a> with <a href="http://llvm.org/docs/GoldPlugin.html" target="_blank">Gold</a>-plugin.
+2) Compile AFLGo fuzzer and LLVM-instrumentation pass
+```bash
+# Checkout source code
+git clone https://github.com/aflgo/aflgo.git
+AFLGO=$PWD/aflgo
+
+# Compile source code
+pushd $AFLGO
+make clean all 
+cd llvm_mode
+make clean all
+popd
+```
+3) Download subject (<a href="http://www.darwinsys.com/file/" target="_blank">file</a>-utility) and set targets (commit <a href="https://github.com/file/file/commit/69928a2" target="_blank">69928a2</a>)
+```bash
+git clone https://github.com/file/file.git
+cd file && git checkout 69928a2 && cd ..
+SUBJECT=$PWD/file
+```
+4) Set targets (BBtargets)
+```bash
+OUT=$PWD
+wget https://raw.githubusercontent.com/jay/showlinenum/develop/showlinenum.awk
+chmod +x showlinenum.awk
+pushd $SUBJECT
+  git diff -U0 HEAD^ HEAD > $OUT/commit.diff
+popd
+cat $OUT/commit.diff |  $OUT/showlinenum.awk show_header=0 path=1 | grep -e "\.[ch]:[0-9]*:+" -e "\.cpp:[0-9]*:+" -e "\.cc:[0-9]*:+" | cut -d+ -f1 | rev | cut -c2- | rev > $OUT/BBtargets.txt
+
+```
+
+5) Instrument subject
+```bash
+export CC=$AFLGO/afl-clang-fast
+export CXX=$AFLGO/afl-clang-fast++
+export CFLAGS="$CFLAGS -distance=$PWD/distance.cfg.txt"
+export CXXFLAGS="$CXXFLAGS -distance=$PWD/distance.cfg.txt"
+
+
+# TO BE CONTINUED ...
+```
