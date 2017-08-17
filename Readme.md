@@ -19,7 +19,7 @@ The easiest way to use AFLGo is as patch testing tool in OSS-Fuzz. Here is our i
 ```bash
 # Checkout source code
 git clone https://github.com/aflgo/aflgo.git
-AFLGO=$PWD/aflgo
+export AFLGO=$PWD/aflgo
 
 # Compile source code
 pushd $AFLGO
@@ -30,20 +30,31 @@ popd
 ```
 3) Download subject (<a href="http://www.darwinsys.com/file/" target="_blank">file</a>-utility) and set targets (commit <a href="https://github.com/file/file/commit/69928a2" target="_blank">69928a2</a>)
 ```bash
+# Clone subject repository
 git clone https://github.com/file/file.git
+
+# Checkout revision 69928a2
 cd file && git checkout 69928a2 && cd ..
-SUBJECT=$PWD/file
+export SUBJECT=$PWD/file
 ```
 4) Set targets (BBtargets)
 ```bash
-OUT=$PWD
+# Setup directory containing all temporary files
+export OUT=$PWD
+
+# Download commit-analysis tool
 wget https://raw.githubusercontent.com/jay/showlinenum/develop/showlinenum.awk
 chmod +x showlinenum.awk
+
+# Generate BBtargets from commits
 pushd $SUBJECT
   git diff -U0 HEAD^ HEAD > $OUT/commit.diff
 popd
 cat $OUT/commit.diff |  $OUT/showlinenum.awk show_header=0 path=1 | grep -e "\.[ch]:[0-9]*:+" -e "\.cpp:[0-9]*:+" -e "\.cc:[0-9]*:+" | cut -d+ -f1 | rev | cut -c2- | rev > $OUT/BBtargets.txt
 
+# Print extracted targets
+echo "Targets:"
+cat $OUT/BBtargets.txt
 ```
 
 5) Instrument subject
