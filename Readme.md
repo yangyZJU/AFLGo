@@ -13,9 +13,17 @@ Unlike AFL, AFLGo spends most of its time budget on reaching specific target loc
 The easiest way to use AFLGo is as patch testing tool in OSS-Fuzz. Here is our integration:
 * https://github.com/aflgo/oss-fuzz
 
-# How to use AFLGo
+# How to instrument a Binary with AFLGo
 1) Install <a href="https://llvm.org/docs/CMake.html" target="_blank">LLVM</a> with <a href="http://llvm.org/docs/GoldPlugin.html" target="_blank">Gold</a>-plugin.
-2) Compile AFLGo fuzzer and LLVM-instrumentation pass
+2) Install other prerequisite
+```bash
+sudo apt-get install python3
+sudo apt-get install python3-pip
+sudo pip3 install --upgrade pip
+sudo pip3 install networkx
+sudo pip3 install pydotplus
+```
+3) Compile AFLGo fuzzer and LLVM-instrumentation pass
 ```bash
 # Checkout source code
 git clone https://github.com/aflgo/aflgo.git
@@ -28,42 +36,93 @@ cd llvm_mode
 make clean all
 popd
 ```
-3) Download subject (<a href="http://www.darwinsys.com/file/" target="_blank">file</a>-utility) and set targets (commit <a href="https://github.com/file/file/commit/69928a2" target="_blank">69928a2</a>)
+4) Download subject (<a href="http://www.darwinsys.com/file/" target="_blank">file</a>-utility)
 ```bash
 # Clone subject repository
 git clone https://github.com/file/file.git
-
-# Checkout revision 69928a2
-cd file && git checkout 69928a2 && cd ..
 export SUBJECT=$PWD/file
 ```
-4) Set targets (BBtargets)
+5) Set targets (changed statements in commit <a href="https://github.com/file/file/commit/69928a2" target="_blank">69928a2</a>). Writes BBtargets.txt.
 ```bash
 # Setup directory containing all temporary files
-export OUT=$PWD
+mkdir temp
+export TMP_DIR=$PWD/temp
 
 # Download commit-analysis tool
 wget https://raw.githubusercontent.com/jay/showlinenum/develop/showlinenum.awk
 chmod +x showlinenum.awk
+mv showlinenum.awk $TMP_DIR
 
-# Generate BBtargets from commits
+# Generate BBtargets from commit 69928a2
 pushd $SUBJECT
-  git diff -U0 HEAD^ HEAD > $OUT/commit.diff
+  git checkout 69928a2
+  git diff -U0 HEAD^ HEAD > $TMP_DIR/commit.diff
 popd
-cat $OUT/commit.diff |  $OUT/showlinenum.awk show_header=0 path=1 | grep -e "\.[ch]:[0-9]*:+" -e "\.cpp:[0-9]*:+" -e "\.cc:[0-9]*:+" | cut -d+ -f1 | rev | cut -c2- | rev > $OUT/BBtargets.txt
+cat $TMP_DIR/commit.diff |  $TMP_DIR/showlinenum.awk show_header=0 path=1 | grep -e "\.[ch]:[0-9]*:+" -e "\.cpp:[0-9]*:+" -e "\.cc:[0-9]*:+" | cut -d+ -f1 | rev | cut -c2- | rev > $TMP_DIR/BBtargets.txt
 
-# Print extracted targets
+# Print extracted targets. 
 echo "Targets:"
-cat $OUT/BBtargets.txt
+cat $TMP_DIR/BBtargets.txt
 ```
-
-5) Instrument subject
+6) **Note**: If there are no targets, there is nothing to instrument!
+7) Generate CG and intra-procedural CFGs from subject (file-utility).
 ```bash
+# Set aflgo-instrumenter
 export CC=$AFLGO/afl-clang-fast
 export CXX=$AFLGO/afl-clang-fast++
-export CFLAGS="$CFLAGS -distance=$PWD/distance.cfg.txt"
-export CXXFLAGS="$CXXFLAGS -distance=$PWD/distance.cfg.txt"
 
+# Set aflgo-instrumentation flags
+export COPY_CFLAGS=$CFLAGS
+export COPY_CXXFLAGS=$CXXFLAGS
+export ADDITIONAL="-targets=$TMP_DIR/BBtargets.txt -outdir=$TMP_DIR -flto -fuse-ld=gold -Wl,-plugin-opt=save-temps"
+export CFLAGS="$CFLAGS $ADDITIONAL"
+export CXXFLAGS="$CXXFLAGS $ADDITIONAL"
 
-# TO BE CONTINUED ...
+# Build file-utility (in order to generate CG and CFGs)
+pushd $SUBJECT
+  autoreconf -i
+  ./configure --enable-static
+  make V=1 all -j$(nproc)
+popd
+
+# Test whether build was successful 
+$SUBJECT/src/file -m $SUBJECT/magic/magic.mgc $SUBJECT/src/file
+
+# Test whether CG/CFG extraction was successful
+ls $TMP_DIR/dot-files
+echo "Function targets"
+cat $TMP_DIR/Ftargets.txt
+
+# Clean up
+cat $TMP_DIR/BBnames.txt | rev | cut -d: -f2- | rev | sort | uniq > $TMP_DIR/BBnames2.txt && mv $TMP_DIR/BBnames2.txt $TMP_DIR/BBnames.txt
+cat $TMP_DIR/BBcalls.txt | sort | uniq > $TMP_DIR/BBcalls2.txt && mv $TMP_DIR/BBcalls2.txt $TMP_DIR/BBcalls.txt
+
+# Generate distance
+$AFLGO/scripts/genDistance.sh $SUBJECT/src $TMP_DIR file
+
+# Check distance file
+tail $TMP_DIR/distance.cfg.txt
 ```
+8) Note: If `distance.cfg.txt` is empty, there was some problem computing the CG-level and BB-level target distance. See `$TMP_DIR/step*`.
+9) Instrument subject (file-utility)
+```bash
+export CFLAGS="$COPY_CFLAGS -distance=$TMP_DIR/distance.cfg.txt"
+export CXXFLAGS="$COPY_CXXFLAGS -distance=$TMP_DIR/distance.cfg.txt"
+pushd $SUBJECT
+  make clean all -j$(nproc)
+popd
+```
+
+# How to fuzz the instrumented binary
+* We set the exponential annealing-based power schedule (-z exp).
+* We set the time-to-exploitation to 45min (-c 45m), assuming the fuzzer is run for about an hour.
+```bash
+# Prepare seed corpus for file-utility
+mkdir in
+find $AFLGO/testcases/ -type f -exec cp {} in \;
+
+# Start fuzzer
+$AFLGO/afl-fuzz -d -i in -o out -m none -z exp -c 45m \
+       $SUBJECT/src/file -m $SUBJECT/magic.mgc @@
+```
+
