@@ -81,12 +81,16 @@ export CXXFLAGS="$CXXFLAGS $ADDITIONAL"
 # Build libxml2 (in order to generate CG and CFGs)
 pushd $SUBJECT
   ./autogen.sh
-  ./configure 
+  ./configure -disable-shared
   make -j$(nproc) clean
   make -j$(nproc) all
 popd
+# If the linker (CCLD) complains that you should run ranlib, make
+# sure that libLTO.so and LLVMgold.so (from building LLVM with Gold)
+# can be found in /usr/lib/bfd-plugins
 
 # Test whether CG/CFG extraction was successful
+$SUBJECT/xmllint --valid --recover $SUBJECT/test/dtd3
 ls $TMP_DIR/dot-files
 echo "Function targets"
 cat $TMP_DIR/Ftargets.txt
