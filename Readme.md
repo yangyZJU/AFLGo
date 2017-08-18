@@ -106,7 +106,10 @@ cat $TMP_DIR/BBcalls.txt | sort | uniq > $TMP_DIR/BBcalls2.txt && mv $TMP_DIR/BB
 $AFLGO/scripts/genDistance.sh $SUBJECT $TMP_DIR xmllint
 
 # Check distance file
-tail $TMP_DIR/distance.cfg.txt
+echo "Distance values:"
+head -n5 $TMP_DIR/distance.cfg.txt
+echo "..."
+tail -n5 $TMP_DIR/distance.cfg.txt
 ```
 8) Note: If `distance.cfg.txt` is empty, there was some problem computing the CG-level and BB-level target distance. See `$TMP_DIR/step*`.
 9) Instrument subject (i.e., libxml2)
@@ -114,7 +117,9 @@ tail $TMP_DIR/distance.cfg.txt
 export CFLAGS="$COPY_CFLAGS -distance=$TMP_DIR/distance.cfg.txt"
 export CXXFLAGS="$COPY_CXXFLAGS -distance=$TMP_DIR/distance.cfg.txt"
 pushd $SUBJECT
-  make -j$(nproc) clean
+  # Team time? 🍵 
+  make clean
+  ./configure --disable-shared
   make -j$(nproc) all
 popd
 ```
@@ -128,7 +133,6 @@ mkdir in
 cp $SUBJECT/test/dtd* in
 cp $SUBJECT/test/dtds/* in
 
-
-
+# To be continued ...
 ```
 
