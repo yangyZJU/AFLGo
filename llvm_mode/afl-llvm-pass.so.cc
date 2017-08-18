@@ -486,7 +486,8 @@ bool AFLCoverage::runOnModule(Module &M) {
                   if (it->first.compare(bb_name) == 0)
                     distance = it->second;
 
-                ACTF("Distance for %s\t: %d", bb_name.c_str(), distance);
+                /* DEBUG */
+		// ACTF("Distance for %s\t: %d", bb_name.c_str(), distance);
 
               }
             }
