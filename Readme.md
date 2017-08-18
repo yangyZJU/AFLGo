@@ -17,7 +17,9 @@ The easiest way to use AFLGo is as patch testing tool in OSS-Fuzz. Here is our i
 1) Install <a href="https://llvm.org/docs/CMake.html" target="_blank">LLVM</a> with <a href="http://llvm.org/docs/GoldPlugin.html" target="_blank">Gold</a>-plugin. You can also follow <a href="https://github.com/aflgo/oss-fuzz/blob/master/infra/base-images/base-clang/checkout_build_install_llvm.sh" target="_blank">these</a> instructions.
 2) Install other prerequisite
 ```bash
+sudo apt-get update
 sudo apt-get install python3
+sudo apt-get install python3-dev
 sudo apt-get install python3-pip
 sudo pip3 install --upgrade pip
 sudo pip3 install networkx
@@ -78,7 +80,8 @@ export ADDITIONAL="-targets=$TMP_DIR/BBtargets.txt -outdir=$TMP_DIR -flto -fuse-
 export CFLAGS="$CFLAGS $ADDITIONAL"
 export CXXFLAGS="$CXXFLAGS $ADDITIONAL"
 
-# Build libxml2 (in order to generate CG and CFGs)
+# Build libxml2 (in order to generate CG and CFGs).
+# Meanwhile go have a coffee ☕️
 pushd $SUBJECT
   ./autogen.sh
   ./configure -disable-shared
@@ -99,8 +102,8 @@ cat $TMP_DIR/Ftargets.txt
 cat $TMP_DIR/BBnames.txt | rev | cut -d: -f2- | rev | sort | uniq > $TMP_DIR/BBnames2.txt && mv $TMP_DIR/BBnames2.txt $TMP_DIR/BBnames.txt
 cat $TMP_DIR/BBcalls.txt | sort | uniq > $TMP_DIR/BBcalls2.txt && mv $TMP_DIR/BBcalls2.txt $TMP_DIR/BBcalls.txt
 
-# Generate distance
-$AFLGO/scripts/genDistance.sh $SUBJECT/src $TMP_DIR file
+# Generate distance. Meanwhile, coffee time ☕️
+$AFLGO/scripts/genDistance.sh $SUBJECT $TMP_DIR xmllint
 
 # Check distance file
 tail $TMP_DIR/distance.cfg.txt
@@ -120,6 +123,12 @@ popd
 * We set the exponential annealing-based power schedule (-z exp).
 * We set the time-to-exploitation to 45min (-c 45m), assuming the fuzzer is run for about an hour.
 ```bash
-To be continued ..
+# Construct seed corpus
+mkdir in
+cp $SUBJECT/test/dtd* in
+cp $SUBJECT/test/dtds/* in
+
+
+
 ```
 
