@@ -102,7 +102,7 @@ cat $TMP_DIR/Ftargets.txt
 cat $TMP_DIR/BBnames.txt | rev | cut -d: -f2- | rev | sort | uniq > $TMP_DIR/BBnames2.txt && mv $TMP_DIR/BBnames2.txt $TMP_DIR/BBnames.txt
 cat $TMP_DIR/BBcalls.txt | sort | uniq > $TMP_DIR/BBcalls2.txt && mv $TMP_DIR/BBcalls2.txt $TMP_DIR/BBcalls.txt
 
-# Generate distance. Meanwhile, coffee time ☕️
+# Generate distance ☕️
 $AFLGO/scripts/genDistance.sh $SUBJECT $TMP_DIR xmllint
 
 # Check distance file
@@ -116,8 +116,9 @@ tail -n5 $TMP_DIR/distance.cfg.txt
 ```bash
 export CFLAGS="$COPY_CFLAGS -distance=$TMP_DIR/distance.cfg.txt"
 export CXXFLAGS="$COPY_CXXFLAGS -distance=$TMP_DIR/distance.cfg.txt"
+
+# Clean and build subject with distance instrumentation ☕️
 pushd $SUBJECT
-  # Team time? 🍵 
   make clean
   ./configure --disable-shared
   make -j$(nproc) all
