@@ -13,6 +13,11 @@ Unlike AFL, AFLGo spends most of its time budget on reaching specific target loc
 The easiest way to use AFLGo is as patch testing tool in OSS-Fuzz. Here is our integration:
 * https://github.com/aflgo/oss-fuzz
 
+# Environment Variables
+* **AFLGO_INST_RATIO** -- The proportion of basic blocks instrumented with distance values (default: 100).
+* **AFLGO_SELECTIVE** -- Add AFL-trampoline only to basic blocks with distance values? (default: off).
+* **AFLGO_PROFILING_FILE** -- When CFG-tracing is enabled, the data will be stored here.
+
 # How to instrument a Binary with AFLGo
 1) Install <a href="https://llvm.org/docs/CMake.html" target="_blank">LLVM</a> with <a href="http://llvm.org/docs/GoldPlugin.html" target="_blank">Gold</a>-plugin. You can also follow <a href="https://github.com/aflgo/oss-fuzz/blob/master/infra/base-images/base-clang/checkout_build_install_llvm.sh" target="_blank">these</a> instructions.
 2) Install other prerequisite
