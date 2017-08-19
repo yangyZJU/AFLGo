@@ -349,6 +349,13 @@
 
 #define MAX_FACTOR 32
 
+/* This enables tracing of the executed CG and CFG edges. In some cases, 
+   the CG and CFGs are that LLVM produces are incomplete due to register-
+   indirect jumps or calls. To add edges use script/add_edges.py. Don't
+   forget to set environment variable AFLGO_PROFILER_FILE.
+   
+   $ export AFLGO_PROFILER_FILE=<your-file> */
+   
 //#define AFLGO_TRACING
 
 #endif /* ! _HAVE_CONFIG_H */
