@@ -143,4 +143,7 @@ cp $SUBJECT/test/dtds/* in
 
 $AFLGO/afl-fuzz -S ef709ce2 -z exp -c 45m -i in -o out $SUBJECT/xmllint --valid --recover @@
 ```
-
+* **Tipp**: Concurrently fuzz the most recent version as master :)
+```bash
+$AFLGO/afl-fuzz -M master -z exp -c 45m -i in -o out $MASTER/xmllint --valid --recover @@
+```
