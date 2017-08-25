@@ -95,9 +95,13 @@ pushd $SUBJECT
   make -j$(nproc) clean
   make -j$(nproc) all
 popd
-# If the linker (CCLD) complains that you should run ranlib, make
-# sure that libLTO.so and LLVMgold.so (from building LLVM with Gold)
-# can be found in /usr/lib/bfd-plugins
+# * If the linker (CCLD) complains that you should run ranlib, make
+#   sure that libLTO.so and LLVMgold.so (from building LLVM with Gold)
+#   can be found in /usr/lib/bfd-plugins
+# * If the compiler crashes, there is some problem with LLVM not 
+#   supporting our instrumentation (afl-llvm-pass.so.cc:540-577).
+#   LLVM has changed the instrumentation-API very often :(
+#   -> Check LLVM-version, fix problem, and prepare pull request.
 
 # Test whether CG/CFG extraction was successful
 $SUBJECT/xmllint --valid --recover $SUBJECT/test/dtd3
