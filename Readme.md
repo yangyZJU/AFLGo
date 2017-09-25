@@ -30,6 +30,7 @@ sudo apt-get install python3-dev
 sudo apt-get install python3-pip
 sudo pip3 install --upgrade pip
 sudo pip3 install networkx
+sudo pip3 install pydot
 sudo pip3 install pydotplus
 ```
 3) Compile AFLGo fuzzer and LLVM-instrumentation pass
@@ -89,9 +90,10 @@ export CXXFLAGS="$CXXFLAGS $ADDITIONAL"
 
 # Build libxml2 (in order to generate CG and CFGs).
 # Meanwhile go have a coffee ☕️
+export LDFLAGS=-lpthreads
 pushd $SUBJECT
   ./autogen.sh
-  ./configure -disable-shared
+  ./configure --disable-shared
   make -j$(nproc) clean
   make -j$(nproc) all
 popd
