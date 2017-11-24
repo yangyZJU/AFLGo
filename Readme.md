@@ -90,7 +90,7 @@ export CXXFLAGS="$CXXFLAGS $ADDITIONAL"
 
 # Build libxml2 (in order to generate CG and CFGs).
 # Meanwhile go have a coffee ☕️
-export LDFLAGS=-lpthreads
+export LDFLAGS=-lpthread
 pushd $SUBJECT
   ./autogen.sh
   ./configure --disable-shared
