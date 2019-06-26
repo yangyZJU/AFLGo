@@ -14,3 +14,4 @@ $AFLGO/scripts/genDistance.sh $SUBJECT $TMP_DIR mjs-bin
 $CC -DMJS_MAIN mjs.c -distance=$TMP_DIR/distance.cfg.txt -ldl -g -o mjs-bin
 cd obj-aflgo; mkdir in; echo "" > in/in
 $AFLGO/afl-fuzz -m none -z exp -c 45m -i in -o out ../mjs-bin -f @@
+# mkdir out; for i in {1..10}; do timeout -sHUP 180m $AFLGO/afl-fuzz -m none -z exp -c 45m -i in -o "out/out_$i" ../mjs-bin -f @@ > /dev/null 2>&1 & done

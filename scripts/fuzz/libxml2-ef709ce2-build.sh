@@ -6,6 +6,7 @@ export SUBJECT=$PWD; export TMP_DIR=$PWD/obj-aflgo/temp
 export CC=$AFLGO/afl-clang-fast; export CXX=$AFLGO/afl-clang-fast++
 export LDFLAGS=-lpthread
 export ADDITIONAL="-targets=$TMP_DIR/BBtargets.txt -outdir=$TMP_DIR -flto -fuse-ld=gold -Wl,-plugin-opt=save-temps"
+#echo $'jas_tvp.c:111\nmif_cod.c:587\nmif_cod.c:497\nmif_cod.c:166\njas_image.c:372\njasper.c:229\nmif_cod.c:573\njas_tvp.c:96\nmif_cod.c:536' > $TMP_DIR/BBtargets.txt
 git diff -U0 HEAD^ HEAD > $TMP_DIR/commit.diff
 wget https://raw.githubusercontent.com/jay/showlinenum/develop/showlinenum.awk
 chmod +x showlinenum.awk
