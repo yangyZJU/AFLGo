@@ -46,7 +46,7 @@ cd llvm_mode
 make clean all
 popd
 ```
-4) Download subject (e.g., <a href="http://xmlsoft.org/" target="_blank">libxml2</a>)
+4) Download subject (e.g., <a href="http://xmlsoft.org/" target="_blank">libxml2</a>) or just run [libxml2 fuzzing script](./scripts/fuzz/libxml2-ef709ce2.sh).
 ```bash
 # Clone subject repository
 git clone https://gitlab.gnome.org/GNOME/libxml2
@@ -153,3 +153,4 @@ $AFLGO/afl-fuzz -S ef709ce2 -z exp -c 45m -i in -o out $SUBJECT/xmllint --valid 
 ```bash
 $AFL/afl-fuzz -M master -i in -o out $MASTER/xmllint --valid --recover @@
 ```
+* Run more [fuzzing scripts](./scripts/fuzz) of various real programs like Binutils, jasper, lrzip, libming and DARPA CGC. 
