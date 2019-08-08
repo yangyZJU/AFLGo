@@ -1,7 +1,6 @@
 git clone https://gitlab.gnome.org/GNOME/libxml2.git libxml2_ef709ce2
 cd libxml2_ef709ce2; git checkout ef709ce2
 mkdir obj-aflgo; mkdir obj-aflgo/temp
-export AFLGO=/home/dungnguyen/aflgo
 export SUBJECT=$PWD; export TMP_DIR=$PWD/obj-aflgo/temp
 export CC=$AFLGO/afl-clang-fast; export CXX=$AFLGO/afl-clang-fast++
 export LDFLAGS=-lpthread

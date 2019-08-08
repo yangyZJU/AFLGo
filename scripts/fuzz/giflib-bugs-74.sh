@@ -1,7 +1,6 @@
 git clone https://git.code.sf.net/p/giflib/code giflib-bugs-74
 cd giflib-bugs-74; git checkout 72e31ff
 mkdir obj-aflgo; mkdir obj-aflgo/temp
-export AFLGO=/home/dungnguyen/aflgo
 export SUBJECT=$PWD; export TMP_DIR=$PWD/obj-aflgo/temp
 export CC=$AFLGO/afl-clang-fast; export CXX=$AFLGO/afl-clang-fast++
 export LDFLAGS=-lpthread

@@ -1,7 +1,6 @@
 git clone https://github.com/trailofbits/cb-multios
 cd cb-multios; mv challenges all-challenges; mkdir -p challenges/Palindrome; cp -r all-challenges/Palindrome challenges
 mkdir obj-aflgo; mkdir obj-aflgo/temp
-export AFLGO=/home/dungnguyen/aflgo
 export SUBJECT=$PWD; export TMP_DIR=$PWD/obj-aflgo/temp
 export CC=$AFLGO/afl-clang-fast; export CXX=$AFLGO/afl-clang-fast++
 export LDFLAGS=-lpthread

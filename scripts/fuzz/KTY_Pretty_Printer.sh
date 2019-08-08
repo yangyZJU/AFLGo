@@ -1,7 +1,6 @@
 git clone https://github.com/trailofbits/cb-multios KTY_Pretty_Printer
 cd KTY_Pretty_Printer; mv challenges all-challenges; mkdir -p challenges/KTY_Pretty_Printer; cp -r all-challenges/KTY_Pretty_Printer challenges
 mkdir obj-aflgo; mkdir obj-aflgo/temp
-export AFLGO=/home/dungnguyen/aflgo
 export SUBJECT=$PWD; export TMP_DIR=$PWD/obj-aflgo/temp
 export CC=$AFLGO/afl-clang-fast; export CXX=$AFLGO/afl-clang-fast++
 export LDFLAGS=-lpthread

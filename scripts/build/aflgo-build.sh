@@ -42,6 +42,6 @@ sudo apt install python-dev python3 python3-dev python3-pip autoconf automake li
 sudo pip3 install --upgrade pip
 sudo pip3 install networkx pydot pydotplus
 # build AFLGo
-cd ~; git clone https://github.com/strongcourage/aflgo.git
+cd $HOME; git clone https://github.com/aflgo/aflgo.git
 cd aflgo; make clean all; cd llvm_mode; make clean all
-export AFLGO=/home/dungnguyen/aflgo
+export AFLGO=$HOME/aflgo

@@ -1,7 +1,6 @@
 git clone https://github.com/cesanta/mjs.git mjs-issues-78
 cd mjs-issues-78; git checkout 9eae0e6
 mkdir obj-aflgo; mkdir obj-aflgo/temp
-export AFLGO=/home/dungnguyen/aflgo
 export SUBJECT=$PWD; export TMP_DIR=$PWD/obj-aflgo/temp
 export CC=$AFLGO/afl-clang-fast; export CXX=$AFLGO/afl-clang-fast++
 export LDFLAGS=-lpthread
