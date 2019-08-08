@@ -49,7 +49,7 @@ popd
 4) Download subject (e.g., <a href="http://xmlsoft.org/" target="_blank">libxml2</a>)
 ```bash
 # Clone subject repository
-git clone git://git.gnome.org/libxml2
+git clone https://gitlab.gnome.org/GNOME/libxml2
 export SUBJECT=$PWD/libxml2
 ```
 5) Set targets (e.g., changed statements in commit <a href="https://git.gnome.org/browse/libxml2/commit/?id=ef709ce2" target="_blank">ef709ce2</a>). Writes BBtargets.txt.
