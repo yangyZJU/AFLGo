@@ -23,6 +23,7 @@ cmake -G "Ninja" \
       -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86" \
       -DLLVM_BINUTILS_INCDIR=/usr/include ~/build/llvm_tools/llvm-4.0.0.src
 ninja; sudo ninja install
+cd ~/build/llvm_tools
 mkdir -p build-llvm/msan; cd build-llvm/msan
 cmake -G "Ninja" \
       -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
@@ -38,9 +39,9 @@ sudo cp /usr/local/lib/LLVMgold.so /usr/lib/bfd-plugins
 # install some packages
 export LC_ALL=C
 sudo apt-get update
-sudo apt install python-dev python3 python3-dev python3-pip autoconf automake libtool-bin python-bs4 libclang-4.0-dev
-sudo pip3 install --upgrade pip
-sudo pip3 install networkx pydot pydotplus
+sudo apt install -y python-dev python3 python3-dev python3-pip autoconf automake libtool-bin python-bs4 libclang-4.0-dev
+sudo python3 -m pip install --upgrade pip
+sudo python3 -m pip install networkx pydot pydotplus
 # build AFLGo
 cd $HOME; git clone https://github.com/aflgo/aflgo.git
 cd aflgo; make clean all; cd llvm_mode; make clean all
