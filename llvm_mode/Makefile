@@ -7,7 +7,7 @@
 #
 # LLVM integration design comes from Laszlo Szekeres.
 #
-# Copyright 2015, 2016 Google Inc. All rights reserved.
+# Copyright 2015, 2016 Google LLC All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,8 @@ CXXFLAGS    ?= -O3 -funroll-loops
 CXXFLAGS    += -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign \
                -DVERSION=\"$(VERSION)\" -Wno-variadic-macros
 
-CLANG_CFL    = `$(LLVM_CONFIG) --cxxflags` -fno-rtti -fpic $(CXXFLAGS)
+# Mark nodelete to work around unload bug in upstream LLVM 5.0+
+CLANG_CFL    = `$(LLVM_CONFIG) --cxxflags` -Wl,-znodelete -fno-rtti -fpic $(CXXFLAGS)
 CLANG_LFL    = `$(LLVM_CONFIG) --ldflags` $(LDFLAGS)
 
 # User teor2345 reports that this is required to make things work on MacOS X.
@@ -96,7 +97,9 @@ endif
 test_build: $(PROGS)
 	@echo "[*] Testing the CC wrapper and instrumentation output..."
 	unset AFL_USE_ASAN AFL_USE_MSAN AFL_INST_RATIO; AFL_QUIET=1 AFL_PATH=. AFL_CC=$(CC) ../afl-clang-fast $(CFLAGS) ../test-instr.c -o test-instr $(LDFLAGS)
-	echo 0 | ../afl-showmap -m none -q -o .test-instr0 ./test-instr
+# Use /dev/null to avoid problems with optimization messing up expected
+# branches. See https://github.com/google/AFL/issues/30.
+	../afl-showmap -m none -q -o .test-instr0 ./test-instr < /dev/null
 	echo 1 | ../afl-showmap -m none -q -o .test-instr1 ./test-instr
 	@rm -f test-instr
 	@cmp -s .test-instr0 .test-instr1; DR="$$?"; rm -f .test-instr0 .test-instr1; if [ "$$DR" = "0" ]; then echo; echo "Oops, the instrumentation does not seem to be behaving correctly!"; echo; echo "Please ping <lcamtuf@google.com> to troubleshoot the issue."; echo; exit 1; fi
