@@ -70,10 +70,9 @@ if [ $RESUME -le $STEP ]; then
       rm callgraph.dot
     done
 
-    #TODO Integrate several call graphs into one
-    callgraph=$(ls -1d callgraph.* | head -n1)
-    cp $callgraph callgraph.dot
-    echo "($STEP) TODO: Integrate several call graphs into one. Now using $callgraph."
+    #Integrate several call graphs into one
+    $AFLGO/merge_callgraphs.py -o callgraph.dot $(ls callgraph.*)
+    echo "($STEP) Integrating several call graphs into one."
 
   else
 
