@@ -94,8 +94,8 @@ export LDFLAGS=-lpthread
 pushd $SUBJECT
   ./autogen.sh
   ./configure --disable-shared
-  make -j$(nproc) clean
-  make -j$(nproc) all
+  make clean
+  make all
 popd
 # * If the linker (CCLD) complains that you should run ranlib, make
 #   sure that libLTO.so and LLVMgold.so (from building LLVM with Gold)
@@ -104,6 +104,10 @@ popd
 #   supporting our instrumentation (afl-llvm-pass.so.cc:540-577).
 #   LLVM has changed the instrumentation-API very often :(
 #   -> Check LLVM-version, fix problem, and prepare pull request.
+# * You can speed up the compilation with a parallel build. However,
+#   this may impact which BBs are identified as targets. 
+#   See https://github.com/aflgo/aflgo/issues/41.
+
 
 # Test whether CG/CFG extraction was successful
 $SUBJECT/xmllint --valid --recover $SUBJECT/test/dtd3
@@ -134,7 +138,7 @@ export CXXFLAGS="$COPY_CXXFLAGS -distance=$TMP_DIR/distance.cfg.txt"
 pushd $SUBJECT
   make clean
   ./configure --disable-shared
-  make -j$(nproc) all
+  make all
 popd
 ```
 
