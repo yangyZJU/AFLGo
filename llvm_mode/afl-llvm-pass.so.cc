@@ -130,17 +130,17 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   } else if (!DistanceFile.empty()) {
 
-    std::ifstream cf (DistanceFile.c_str());
+    std::ifstream cf(DistanceFile);
     if (cf.is_open()) {
 
       std::string line;
-      while (getline(cf,line)) {
+      while (getline(cf, line)) {
 
         std::size_t pos = line.find(",");
         std::string bb_name = line.substr(0, pos);
         int bb_dis = (int) (100.0 * atof(line.substr(pos + 1, line.length()).c_str()));
 
-        bb_to_dis.insert(std::pair<std::string,int>(bb_name, bb_dis) );
+        bb_to_dis.emplace(bb_name, bb_dis);
         basic_blocks.push_back(bb_name);
 
       }
@@ -154,12 +154,6 @@ bool AFLCoverage::runOnModule(Module &M) {
     }
 
   }
-
-  LLVMContext &C = M.getContext();
-
-  IntegerType *Int8Ty  = IntegerType::getInt8Ty(C);
-  IntegerType *Int32Ty = IntegerType::getInt32Ty(C);
-  IntegerType *Int64Ty = IntegerType::getInt64Ty(C);
 
   /* Show a banner */
 
@@ -189,7 +183,7 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   }
 
-  /* Default: Not selecitive */
+  /* Default: Not selective */
   char* is_selective_str = getenv("AFLGO_SELECTIVE");
   unsigned int is_selective = 0;
 
@@ -207,33 +201,17 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   }
 
-  /* Get globals for the SHM region and the previous location. Note that
-     __afl_prev_loc is thread-local. */
-
-  GlobalVariable *AFLMapPtr =
-      new GlobalVariable(M, PointerType::get(Int8Ty, 0), false,
-                         GlobalValue::ExternalLinkage, 0, "__afl_area_ptr");
-
-  GlobalVariable *AFLPrevLoc = new GlobalVariable(
-      M, Int32Ty, false, GlobalValue::ExternalLinkage, 0, "__afl_prev_loc",
-      0, GlobalVariable::GeneralDynamicTLSModel, 0, false);
-
   /* Instrument all the things! */
 
   int inst_blocks = 0;
 
   if (is_aflgo_preprocessing) {
 
-    std::ofstream bbnames;
-    std::ofstream bbcalls;
-    std::ofstream fnames;
-    std::ofstream ftargets;
+    std::ofstream bbnames(OutDirectory + "/BBnames.txt", std::ofstream::out | std::ofstream::app);
+    std::ofstream bbcalls(OutDirectory + "/BBcalls.txt", std::ofstream::out | std::ofstream::app);
+    std::ofstream fnames(OutDirectory + "/Fnames.txt", std::ofstream::out | std::ofstream::app);
+    std::ofstream ftargets(OutDirectory + "/Ftargets.txt", std::ofstream::out | std::ofstream::app);
     struct stat sb;
-
-    bbnames.open(OutDirectory + "/BBnames.txt", std::ofstream::out | std::ofstream::app);
-    bbcalls.open(OutDirectory + "/BBcalls.txt", std::ofstream::out | std::ofstream::app);
-    fnames.open(OutDirectory + "/Fnames.txt", std::ofstream::out | std::ofstream::app);
-    ftargets.open(OutDirectory + "/Ftargets.txt", std::ofstream::out | std::ofstream::app);
 
     /* Create dot-files directory */
     std::string dotfiles(OutDirectory + "/dot-files");
@@ -243,30 +221,28 @@ bool AFLCoverage::runOnModule(Module &M) {
         FATAL("Could not create directory %s.", dotfiles.c_str());
     }
 
+    std::vector<std::string> blacklist = {
+      "asan.",
+      "llvm.",
+      "sancov.",
+      "free",
+      "malloc",
+      "calloc",
+      "realloc"
+    };
+
     for (auto &F : M) {
 
       bool has_BBs = false;
       std::string funcName = F.getName();
 
       /* Black list of function names */
-      std::vector<std::string> blacklist = {
-        "asan.",
-        "llvm.",
-        "sancov.",
-        "free"
-        "malloc",
-        "calloc",
-        "realloc"
-      };
       for (std::vector<std::string>::size_type i = 0; i < blacklist.size(); i++)
         if (!funcName.compare(0, blacklist[i].size(), blacklist[i]))
           continue;
 
       bool is_target = false;
       for (auto &BB : F) {
-
-        TerminatorInst *TI = BB.getTerminator();
-        IRBuilder<> Builder(TI);
 
         std::string bb_name("");
         std::string filename;
@@ -304,7 +280,7 @@ bool AFLCoverage::runOnModule(Module &M) {
 #endif /* LLVM_OLD_DEBUG_API */
 
             /* Don't worry about external libs */
-            std::string Xlibs("/usr/");
+            static const std::string Xlibs("/usr/");
             if (filename.empty() || line == 0 || !filename.compare(0, Xlibs.size(), Xlibs))
               continue;
 
@@ -375,6 +351,9 @@ bool AFLCoverage::runOnModule(Module &M) {
           has_BBs = true;
 
 #ifdef AFLGO_TRACING
+          TerminatorInst *TI = BB.getTerminator();
+          IRBuilder<> Builder(TI);
+
           Value *bbnameVal = Builder.CreateGlobalStringPtr(bb_name);
           Type *Args[] = {
               Type::getInt8PtrTy(M.getContext()) //uint8_t* bb_name
@@ -390,30 +369,36 @@ bool AFLCoverage::runOnModule(Module &M) {
       if (has_BBs) {
         /* Print CFG */
         std::string cfgFileName = dotfiles + "/cfg." + funcName + ".dot";
-        struct stat buffer;
-        if (stat (cfgFileName.c_str(), &buffer) != 0) {
-          FILE *cfgFILE = fopen(cfgFileName.c_str(), "w");
-          if (cfgFILE) {
-            raw_ostream *cfgFile =
-              new llvm::raw_fd_ostream(fileno(cfgFILE), false, true);
-
-            WriteGraph(*cfgFile, &F, true);
-            fflush(cfgFILE);
-            fclose(cfgFILE);
-          }
+        std::error_code EC;
+        raw_fd_ostream cfgFile(cfgFileName, EC);
+        if (!EC) {
+          WriteGraph(cfgFile, &F, true);
         }
+
         if (is_target)
           ftargets << F.getName().str() << "\n";
         fnames << F.getName().str() << "\n";
       }
     }
 
-    bbnames.close();
-    bbcalls.close();
-    fnames.close();
-    ftargets.close();
-
   } else {
+    /* Distance instrumentation */
+
+    LLVMContext &C = M.getContext();
+    IntegerType *Int8Ty  = IntegerType::getInt8Ty(C);
+    IntegerType *Int32Ty = IntegerType::getInt32Ty(C);
+    IntegerType *Int64Ty = IntegerType::getInt64Ty(C);
+
+    /* Get globals for the SHM region and the previous location. Note that
+       __afl_prev_loc is thread-local. */
+
+    GlobalVariable *AFLMapPtr =
+        new GlobalVariable(M, PointerType::get(Int8Ty, 0), false,
+                           GlobalValue::ExternalLinkage, 0, "__afl_area_ptr");
+
+    GlobalVariable *AFLPrevLoc = new GlobalVariable(
+        M, Int32Ty, false, GlobalValue::ExternalLinkage, 0, "__afl_prev_loc",
+        0, GlobalVariable::GeneralDynamicTLSModel, 0, false);
 
     for (auto &F : M) {
 
@@ -424,8 +409,6 @@ bool AFLCoverage::runOnModule(Module &M) {
         distance = -1;
 
         if (is_aflgo) {
-          TerminatorInst *TI = BB.getTerminator();
-          IRBuilder<> Builder(TI);
 
           std::string bb_name;
           for (auto &I : BB) {
