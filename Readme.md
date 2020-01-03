@@ -138,6 +138,8 @@ pushd $SUBJECT
 popd
 ```
 
+If your compilation crashes in this step, have a look at Issue [#4](https://github.com/aflgo/aflgo/issues/4#issuecomment-333947041).
+
 # How to fuzz the instrumented binary
 * We set the exponential annealing-based power schedule (-z exp).
 * We set the time-to-exploitation to 45min (-c 45m), assuming the fuzzer is run for about an hour.
