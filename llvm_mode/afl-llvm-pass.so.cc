@@ -397,7 +397,7 @@ bool AFLCoverage::runOnModule(Module &M) {
             raw_ostream *cfgFile =
               new llvm::raw_fd_ostream(fileno(cfgFILE), false, true);
 
-            WriteGraph(*cfgFile, (const Function*)&F, true);
+            WriteGraph(*cfgFile, &F, true);
             fflush(cfgFILE);
             fclose(cfgFILE);
           }
