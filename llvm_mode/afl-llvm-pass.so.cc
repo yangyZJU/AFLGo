@@ -100,6 +100,26 @@ namespace {
 
 char AFLCoverage::ID = 0;
 
+static bool isBlacklisted(const Function *F) {
+  static const SmallVector<std::string, 8> Blacklist = {
+    "asan.",
+    "llvm.",
+    "sancov.",
+    "free",
+    "malloc",
+    "calloc",
+    "realloc"
+  };
+
+  for (auto const &BlacklistFunc : Blacklist) {
+    if (F->getName().startswith(BlacklistFunc)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool AFLCoverage::runOnModule(Module &M) {
 
   bool is_aflgo = false;
@@ -219,25 +239,15 @@ bool AFLCoverage::runOnModule(Module &M) {
       FATAL("Could not create directory %s.", dotfiles.c_str());
     }
 
-    std::vector<std::string> blacklist = {
-      "asan.",
-      "llvm.",
-      "sancov.",
-      "free",
-      "malloc",
-      "calloc",
-      "realloc"
-    };
-
     for (auto &F : M) {
 
       bool has_BBs = false;
       std::string funcName = F.getName();
 
       /* Black list of function names */
-      for (std::vector<std::string>::size_type i = 0; i < blacklist.size(); i++)
-        if (!funcName.compare(0, blacklist[i].size(), blacklist[i]))
-          continue;
+      if (isBlacklisted(&F)) {
+        continue;
+      }
 
       bool is_target = false;
       for (auto &BB : F) {
@@ -317,18 +327,9 @@ bool AFLCoverage::runOnModule(Module &M) {
               if (found != std::string::npos)
                 filename = filename.substr(found + 1);
 
-              if (c->getCalledFunction()) {
-                std::string called = c->getCalledFunction()->getName().str();
-
-                bool blacklisted = false;
-                for (std::vector<std::string>::size_type i = 0; i < blacklist.size(); i++) {
-                  if (!called.compare(0, blacklist[i].size(), blacklist[i])) {
-                    blacklisted = true;
-                    break;
-                  }
-                }
-                if (!blacklisted)
-                  bbcalls << bb_name << "," << called << "\n";
+              if (auto *CalledF = c->getCalledFunction()) {
+                if (!isBlacklisted(CalledF))
+                  bbcalls << bb_name << "," << CalledF->getName().str() << "\n";
               }
             }
           }
