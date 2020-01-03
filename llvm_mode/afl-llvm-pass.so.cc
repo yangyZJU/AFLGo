@@ -47,6 +47,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Analysis/CFGPrinter.h"
 
@@ -211,14 +212,11 @@ bool AFLCoverage::runOnModule(Module &M) {
     std::ofstream bbcalls(OutDirectory + "/BBcalls.txt", std::ofstream::out | std::ofstream::app);
     std::ofstream fnames(OutDirectory + "/Fnames.txt", std::ofstream::out | std::ofstream::app);
     std::ofstream ftargets(OutDirectory + "/Ftargets.txt", std::ofstream::out | std::ofstream::app);
-    struct stat sb;
 
     /* Create dot-files directory */
     std::string dotfiles(OutDirectory + "/dot-files");
-    if (stat(dotfiles.c_str(), &sb) != 0) {
-      const int dir_err = mkdir(dotfiles.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-      if (-1 == dir_err)
-        FATAL("Could not create directory %s.", dotfiles.c_str());
+    if (sys::fs::create_directory(dotfiles)) {
+      FATAL("Could not create directory %s.", dotfiles.c_str());
     }
 
     std::vector<std::string> blacklist = {
