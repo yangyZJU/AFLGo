@@ -100,6 +100,38 @@ namespace {
 
 char AFLCoverage::ID = 0;
 
+static void getDebugLoc(const Instruction *I, std::string &Filename,
+                        unsigned &Line) {
+#ifdef LLVM_OLD_DEBUG_API
+  DebugLoc Loc = I.getDebugLoc();
+  if (!Loc.isUnknown()) {
+    DILocation cDILoc(Loc.getAsMDNode(M.getContext()));
+    DILocation oDILoc = cDILoc.getOrigLocation();
+
+    Line = oDILoc.getLineNumber();
+    Filename = oDILoc.getFilename().str();
+
+    if (filename.empty()) {
+      Line = cDILoc.getLineNumber();
+      Filename = cDILoc.getFilename().str();
+    }
+  }
+#else
+  if (DILocation *Loc = I->getDebugLoc()) {
+    Line = Loc->getLine();
+    Filename = Loc->getFilename().str();
+
+    if (Filename.empty()) {
+      DILocation *oDILoc = Loc->getInlinedAt();
+      if (oDILoc) {
+        Line = oDILoc->getLine();
+        Filename = oDILoc->getFilename().str();
+      }
+    }
+  }
+#endif /* LLVM_OLD_DEBUG_API */
+}
+
 static bool isBlacklisted(const Function *F) {
   static const SmallVector<std::string, 8> Blacklist = {
     "asan.",
@@ -257,53 +289,25 @@ bool AFLCoverage::runOnModule(Module &M) {
         unsigned line;
 
         for (auto &I : BB) {
-#ifdef LLVM_OLD_DEBUG_API
-          DebugLoc Loc = I.getDebugLoc();
-          if (!Loc.isUnknown()) {
+          getDebugLoc(&I, filename, line);
 
-            DILocation cDILoc(Loc.getAsMDNode(M.getContext()));
-            DILocation oDILoc = cDILoc.getOrigLocation();
+          /* Don't worry about external libs */
+          static const std::string Xlibs("/usr/");
+          if (filename.empty() || line == 0 || !filename.compare(0, Xlibs.size(), Xlibs))
+            continue;
 
-            line = oDILoc.getLineNumber();
-            filename = oDILoc.getFilename().str();
+          if (bb_name.empty()) {
 
-            if (filename.empty()) {
-              line = cDILoc.getLineNumber();
-              filename = cDILoc.getFilename().str();
-            }
-#else
+            std::size_t found = filename.find_last_of("/\\");
+            if (found != std::string::npos)
+              filename = filename.substr(found + 1);
 
-          if (DILocation *Loc = I.getDebugLoc()) {
-            line = Loc->getLine();
-            filename = Loc->getFilename().str();
+            bb_name = filename + ":" + std::to_string(line);
 
-            if (filename.empty()) {
-              DILocation *oDILoc = Loc->getInlinedAt();
-              if (oDILoc) {
-                line = oDILoc->getLine();
-                filename = oDILoc->getFilename().str();
-              }
-            }
+          }
 
-#endif /* LLVM_OLD_DEBUG_API */
-
-            /* Don't worry about external libs */
-            static const std::string Xlibs("/usr/");
-            if (filename.empty() || line == 0 || !filename.compare(0, Xlibs.size(), Xlibs))
-              continue;
-
-            if (bb_name.empty()) {
-
-              std::size_t found = filename.find_last_of("/\\");
-              if (found != std::string::npos)
-                filename = filename.substr(found + 1);
-
-              bb_name = filename + ":" + std::to_string(line);
-
-            }
-
-            if (!is_target) {
-	      for (std::list<std::string>::iterator it = targets.begin(); it != targets.end(); ++it) {
+          if (!is_target) {
+	          for (std::list<std::string>::iterator it = targets.begin(); it != targets.end(); ++it) {
 
                 std::string target = *it;
                 std::size_t found = target.find_last_of("/\\");
@@ -320,7 +324,6 @@ bool AFLCoverage::runOnModule(Module &M) {
               }
             }
 
-
             if (auto *c = dyn_cast<CallInst>(&I)) {
 
               std::size_t found = filename.find_last_of("/\\");
@@ -332,7 +335,6 @@ bool AFLCoverage::runOnModule(Module &M) {
                   bbcalls << bb_name << "," << CalledF->getName().str() << "\n";
               }
             }
-          }
         }
 
         if (!bb_name.empty()) {
@@ -411,49 +413,19 @@ bool AFLCoverage::runOnModule(Module &M) {
 
           std::string bb_name;
           for (auto &I : BB) {
+            std::string filename;
+            unsigned line;
+            getDebugLoc(&I, filename, line);
 
-#ifdef LLVM_OLD_DEBUG_API
-            DebugLoc Loc = I.getDebugLoc();
-            if (!Loc.isUnknown()) {
+            if (filename.empty() || line == 0)
+              continue;
+            std::size_t found = filename.find_last_of("/\\");
+            if (found != std::string::npos)
+              filename = filename.substr(found + 1);
 
-              DILocation cDILoc(Loc.getAsMDNode(M.getContext()));
-              DILocation oDILoc = cDILoc.getOrigLocation();
-
-              unsigned line = oDILoc.getLineNumber();
-              std::string filename = oDILoc.getFilename().str();
-
-              if (filename.empty()) {
-                line = cDILoc.getLineNumber();
-                filename = cDILoc.getFilename().str();
-              }
-#else
-            if (DILocation *Loc = I.getDebugLoc()) {
-
-              unsigned line = Loc->getLine();
-              std::string filename = Loc->getFilename().str();
-
-              if (filename.empty()) {
-                DILocation *oDILoc = Loc->getInlinedAt();
-                if (oDILoc) {
-                  line = oDILoc->getLine();
-                  filename = oDILoc->getFilename().str();
-                }
-              }
-#endif /* LLVM_OLD_DEBUG_API */
-
-              if (filename.empty() || line == 0)
-                continue;
-              std::size_t found = filename.find_last_of("/\\");
-              if (found != std::string::npos)
-                filename = filename.substr(found + 1);
-
-              bb_name = filename + ":" + std::to_string(line);
-              break;
-
-            }
-
+            bb_name = filename + ":" + std::to_string(line);
+            break;
           }
-
 
           if (!bb_name.empty()) {
 
@@ -471,9 +443,6 @@ bool AFLCoverage::runOnModule(Module &M) {
                 for (it = bb_to_dis.begin(); it != bb_to_dis.end(); ++it)
                   if (it->first.compare(bb_name) == 0)
                     distance = it->second;
-
-                /* DEBUG */
-		// ACTF("Distance for %s\t: %d", bb_name.c_str(), distance);
 
               }
             }
