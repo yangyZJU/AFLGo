@@ -351,7 +351,7 @@ bool AFLCoverage::runOnModule(Module &M) {
           has_BBs = true;
 
 #ifdef AFLGO_TRACING
-          TerminatorInst *TI = BB.getTerminator();
+          auto *TI = BB.getTerminator();
           IRBuilder<> Builder(TI);
 
           Value *bbnameVal = Builder.CreateGlobalStringPtr(bb_name);
