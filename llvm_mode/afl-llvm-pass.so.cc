@@ -79,6 +79,31 @@ cl::opt<std::string> OutDirectory(
     cl::desc("Output directory where Ftargets.txt, Fnames.txt, and BBnames.txt are generated."),
     cl::value_desc("outdir"));
 
+namespace llvm {
+
+template<>
+struct DOTGraphTraits<Function*> : public DefaultDOTGraphTraits {
+  DOTGraphTraits(bool isSimple=true) : DefaultDOTGraphTraits(isSimple) {}
+
+  static std::string getGraphName(Function *F) {
+    return "CFG for '" + F->getName().str() + "' function";
+  }
+
+  std::string getNodeLabel(BasicBlock *Node, Function *Graph) {
+    if (!Node->getName().empty()) {
+      return Node->getName().str();
+    }
+
+    std::string Str;
+    raw_string_ostream OS(Str);
+
+    Node->printAsOperand(OS, false);
+    return OS.str();
+  }
+};
+
+} // namespace llvm
+
 namespace {
 
   class AFLCoverage : public ModulePass {
@@ -304,13 +329,10 @@ bool AFLCoverage::runOnModule(Module &M) {
               filename = filename.substr(found + 1);
 
             bb_name = filename + ":" + std::to_string(line);
-
           }
 
           if (!is_target) {
-	          for (std::list<std::string>::iterator it = targets.begin(); it != targets.end(); ++it) {
-
-                std::string target = *it;
+              for (auto &target : targets) {
                 std::size_t found = target.find_last_of("/\\");
                 if (found != std::string::npos)
                   target = target.substr(found + 1);
