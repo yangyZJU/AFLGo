@@ -103,7 +103,7 @@ char AFLCoverage::ID = 0;
 static void getDebugLoc(const Instruction *I, std::string &Filename,
                         unsigned &Line) {
 #ifdef LLVM_OLD_DEBUG_API
-  DebugLoc Loc = I.getDebugLoc();
+  DebugLoc Loc = I->getDebugLoc();
   if (!Loc.isUnknown()) {
     DILocation cDILoc(Loc.getAsMDNode(M.getContext()));
     DILocation oDILoc = cDILoc.getOrigLocation();
@@ -137,6 +137,7 @@ static bool isBlacklisted(const Function *F) {
     "asan.",
     "llvm.",
     "sancov.",
+    "__ubsan_handle_",
     "free",
     "malloc",
     "calloc",
