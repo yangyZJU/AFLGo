@@ -137,6 +137,7 @@ static bool isBlacklisted(const Function *F) {
     "asan.",
     "llvm.",
     "sancov.",
+    "__ubsan_handle_",
     "free",
     "malloc",
     "calloc",
