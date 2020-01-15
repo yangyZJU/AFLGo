@@ -111,8 +111,6 @@ if [ $RESUME -le $STEP ]; then
       continue
     fi
 
-    printf "."
-
     #Clean up duplicate lines and \" in labels (bug in Pydotplus)
     awk '!a[$0]++' $f > ${f}.smaller.dot
     mv $f $f.bigger.dot
@@ -122,6 +120,7 @@ if [ $RESUME -le $STEP ]; then
     sed -i 's/\(^\s*[0-9a-zA-Z_]*\):[a-zA-Z0-9]*\( -> \)/\1\2/g' $f
 
     #Compute distance
+    printf "\nComputing distance for $f..\n"
     $AFLGO/distance.py -d $f -t $TMPDIR/BBtargets.txt -n $TMPDIR/BBnames.txt -s $TMPDIR/BBcalls.txt -c $TMPDIR/distance.callgraph.txt -o ${f}.distances.txt >> $TMPDIR/step${STEP}.log 2>&1 #|| FAIL=1
     if [ $? -ne 0 ]; then
       echo -e "\e[93;1m[!]\e[0m Could not calculate distance for $f."
