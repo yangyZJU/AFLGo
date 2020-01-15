@@ -413,6 +413,16 @@ bool AFLCoverage::runOnModule(Module &M) {
     IntegerType *Int32Ty = IntegerType::getInt32Ty(C);
     IntegerType *Int64Ty = IntegerType::getInt64Ty(C);
 
+#ifdef __x86_64__
+    IntegerType *LargestType = Int64Ty;
+    ConstantInt *MapCntLoc = ConstantInt::get(LargestType, MAP_SIZE + 8);
+#else
+    IntegerType *LargestType = Int32Ty;
+    ConstantInt *MapCntLoc = ConstantInt::get(LargestType, MAP_SIZE + 4);
+#endif
+    ConstantInt *MapDistLoc = ConstantInt::get(LargestType, MAP_SIZE);
+    ConstantInt *One = ConstantInt::get(LargestType, 1);
+
     /* Get globals for the SHM region and the previous location. Note that
        __afl_prev_loc is thread-local. */
 
@@ -512,45 +522,28 @@ bool AFLCoverage::runOnModule(Module &M) {
 
         if (distance >= 0) {
 
-          unsigned int udistance = (unsigned) distance;
-
-#ifdef __x86_64__
-          IntegerType *LargestType = Int64Ty;
-          ConstantInt *MapDistLoc = ConstantInt::get(LargestType, MAP_SIZE);
-          ConstantInt *MapCntLoc = ConstantInt::get(LargestType, MAP_SIZE + 8);
-          ConstantInt *Distance = ConstantInt::get(LargestType, udistance);
-#else
-          IntegerType *LargestType = Int32Ty;
-          ConstantInt *MapDistLoc = ConstantInt::get(LargestType, MAP_SIZE);
-          ConstantInt *MapCntLoc = ConstantInt::get(LargestType, MAP_SIZE + 4);
-          ConstantInt *Distance = ConstantInt::get(LargestType, udistance);
-#endif
+          ConstantInt *Distance =
+              ConstantInt::get(LargestType, (unsigned) distance);
 
           /* Add distance to shm[MAPSIZE] */
 
-          Value *MapDistPtr = IRB.CreateGEP(MapPtr, MapDistLoc);
-#ifdef LLVM_OLD_DEBUG_API
+          Value *MapDistPtr = IRB.CreateBitCast(
+              IRB.CreateGEP(MapPtr, MapDistLoc), LargestType->getPointerTo());
           LoadInst *MapDist = IRB.CreateLoad(MapDistPtr);
-          MapDist->mutateType(LargestType);
-#else
-          LoadInst *MapDist = IRB.CreateLoad(LargestType, MapDistPtr);
-#endif
           MapDist->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
+
           Value *IncrDist = IRB.CreateAdd(MapDist, Distance);
           IRB.CreateStore(IncrDist, MapDistPtr)
               ->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
 
-          /* Increase count at to shm[MAPSIZE + (4 or 8)] */
+          /* Increase count at shm[MAPSIZE + (4 or 8)] */
 
-          Value *MapCntPtr = IRB.CreateGEP(MapPtr, MapCntLoc);
-#ifdef LLVM_OLD_DEBUG_API
+          Value *MapCntPtr = IRB.CreateBitCast(
+              IRB.CreateGEP(MapPtr, MapCntLoc), LargestType->getPointerTo());
           LoadInst *MapCnt = IRB.CreateLoad(MapCntPtr);
-          MapCnt->mutateType(LargestType);
-#else
-          LoadInst *MapCnt = IRB.CreateLoad(LargestType, MapCntPtr);
-#endif
           MapCnt->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
-          Value *IncrCnt = IRB.CreateAdd(MapCnt, ConstantInt::get(LargestType, 1));
+
+          Value *IncrCnt = IRB.CreateAdd(MapCnt, One);
           IRB.CreateStore(IncrCnt, MapCntPtr)
               ->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
 
