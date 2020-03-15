@@ -9,7 +9,7 @@ Unlike AFL, AFLGo spends most of its time budget on reaching specific target loc
 * **information flow detection** by setting sensitive sources and sinks as targets. To expose data leakage vulnerabilities, a security researcher would like to generate executions that exercise sensitive sources containing private information and sensitive sinks where data becomes visible to the outside world. A directed fuzzer can be used to generate such executions efficiently.
 * **crash reproduction**  by setting method calls in the stack-trace as targets. When in-field crashes are reported, only the stack-trace and some environmental parameters are sent to the in-house development team. To preserve the user's privacy, the specific crashing input is often not available. AFLGo could help the in-house team to swiftly reproduce these crashes.
 
-AFLGo is based on <a href="http://lcamtuf.coredump.cx/afl/" target="_blank">AFL</a> from Michał Zaleski \<lcamtuf@coredump.cx\>.
+AFLGo is based on <a href="http://lcamtuf.coredump.cx/afl/" target="_blank">AFL</a> from Michał Zaleski \<lcamtuf@coredump.cx\>. Checkout the project [awesome-directed-fuzzing](https://github.com/strongcourage/awesome-directed-fuzzing) for related work on directed greybox/whitebox fuzzing.
 
 # Integration into OSS-Fuzz
 The easiest way to use AFLGo is as patch testing tool in OSS-Fuzz. Here is our integration:
