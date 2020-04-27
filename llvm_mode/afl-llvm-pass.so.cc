@@ -394,7 +394,7 @@ bool AFLCoverage::runOnModule(Module &M) {
         /* Print CFG */
         std::string cfgFileName = dotfiles + "/cfg." + funcName + ".dot";
         std::error_code EC;
-        raw_fd_ostream cfgFile(cfgFileName, EC);
+        raw_fd_ostream cfgFile(cfgFileName, EC, sys::fs::F_None);
         if (!EC) {
           WriteGraph(cfgFile, &F, true);
         }
