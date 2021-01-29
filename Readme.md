@@ -28,12 +28,13 @@ sudo apt-get update
 sudo apt-get install python3
 sudo apt-get install python3-dev
 sudo apt-get install python3-pip
+sudo apt-get install libboost-all-dev  # boost is not required if you use genDistance.sh in step 7
 sudo pip3 install --upgrade pip
 sudo pip3 install networkx
 sudo pip3 install pydot
 sudo pip3 install pydotplus
 ```
-3) Compile AFLGo fuzzer and LLVM-instrumentation pass
+3) Compile AFLGo fuzzer, LLVM-instrumentation pass and the distance calculator
 ```bash
 # Checkout source code
 git clone https://github.com/aflgo/aflgo.git
@@ -44,6 +45,10 @@ pushd $AFLGO
 make clean all 
 cd llvm_mode
 make clean all
+cd ..
+cd distance_calculator/
+cmake -G Ninja ./
+cmake --build ./
 popd
 ```
 4) Download subject (e.g., <a href="http://xmlsoft.org/" target="_blank">libxml2</a>) or just run [libxml2 fuzzing script](./scripts/fuzz/libxml2-ef709ce2.sh).
@@ -120,7 +125,8 @@ cat $TMP_DIR/BBnames.txt | rev | cut -d: -f2- | rev | sort | uniq > $TMP_DIR/BBn
 cat $TMP_DIR/BBcalls.txt | sort | uniq > $TMP_DIR/BBcalls2.txt && mv $TMP_DIR/BBcalls2.txt $TMP_DIR/BBcalls.txt
 
 # Generate distance ☕️
-$AFLGO/scripts/genDistance.sh $SUBJECT $TMP_DIR xmllint
+# $AFLGO/scripts/genDistance.sh is the original, but significantly slower, version
+$AFLGO/scripts/gen_distance_fast.py $SUBJECT $TMP_DIR xmllint
 
 # Check distance file
 echo "Distance values:"
