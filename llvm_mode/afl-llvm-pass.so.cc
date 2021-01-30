@@ -300,7 +300,7 @@ bool AFLCoverage::runOnModule(Module &M) {
     for (auto &F : M) {
 
       bool has_BBs = false;
-      std::string funcName = F.getName();
+      std::string funcName = F.getName().str();
 
       /* Black list of function names */
       if (isBlacklisted(&F)) {
@@ -368,7 +368,8 @@ bool AFLCoverage::runOnModule(Module &M) {
             Twine t(newname);
             SmallString<256> NameData;
             StringRef NameRef = t.toStringRef(NameData);
-            BB.setValueName(ValueName::Create(NameRef));
+            MallocAllocator Allocator;
+            BB.setValueName(ValueName::Create(NameRef, Allocator));
           }
 
           bbnames << BB.getName().str() << "\n";
