@@ -171,11 +171,16 @@ def calculating_distances(args):
             fnames,
             py_version=args.python_only)
 
+    with callgraph.open("r") as f:
+        callgraph_dot = f.read()
+
     # Helper
     def calculate_cfg_distance_from_file(cfg: Path):
         if cfg.stat().st_size == 0: return
         dd_cleanup(cfg)     # for python version
-        outname = cfg.name.split('.')[-2] + ".distances.txt"
+        name = cfg.name.split('.')[-2]
+        if name not in callgraph_dot: return
+        outname = name + ".distances.txt"
         outpath = cfg.parent / outname
         exec_distance_prog(
                 cfg,
