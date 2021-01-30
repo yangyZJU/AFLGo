@@ -159,6 +159,7 @@ def calculating_distances(args):
     bbcalls = args.temporary_directory / "BBcalls.txt"
     bbnames = args.temporary_directory / "BBnames.txt"
     fnames = args.temporary_directory / "Fnames.txt"
+    bbtargets = args.temporary_directory / "BBtargets.txt"
     ftargets = args.temporary_directory / "Ftargets.txt"
     callgraph = dot_files / CALLGRAPH_NAME
     callgraph_distance = args.temporary_directory / "callgraph.distance.txt"
@@ -189,6 +190,7 @@ def calculating_distances(args):
     with ThreadPoolExecutor(max_workers=mp.cpu_count()) as executor:
         results = executor.map(calculate_cfg_distance_from_file,
                                dot_files.glob("cfg.*.dot"))
+    for r in results: pass  # forward Exceptions
     print(f"({STEP}) Done computing distance for CFG")
     merge_distance_files(
             dot_files,
