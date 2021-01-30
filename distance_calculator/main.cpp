@@ -40,7 +40,7 @@ static inline std::string node_name(const std::string &name) {
     if (is_cg) {
         return "{" + name + "}";
     } else {
-        return "{" + name;
+        return "{" + name + ":";
     }
 }
 
@@ -231,12 +231,11 @@ int main(int argc, char *argv[]) {
                 ;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
-        po::notify(vm);
-
         if (vm.count("help")) {
             cout << desc << "\n";
             return 0;
         }
+        po::notify(vm);
     }
     catch(exception& e) {
         cerr << "error: " << e.what() << "\n";
