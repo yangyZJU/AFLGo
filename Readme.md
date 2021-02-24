@@ -100,7 +100,7 @@ pushd $SUBJECT
   ./autogen.sh
   ./configure --disable-shared
   make clean
-  make all
+  make xmllint
 popd
 # * If the linker (CCLD) complains that you should run ranlib, make
 #   sure that libLTO.so and LLVMgold.so (from building LLVM with Gold)
@@ -144,7 +144,7 @@ export CXXFLAGS="$COPY_CXXFLAGS -distance=$TMP_DIR/distance.cfg.txt"
 pushd $SUBJECT
   make clean
   ./configure --disable-shared
-  make all
+  make xmllint
 popd
 ```
 
