@@ -61,13 +61,14 @@ if [ $RESUME -le $STEP ]; then
     for binary in $(echo "$binaries"); do
 
       echo "($STEP) Constructing CG for $binary.."
-      while ! opt -dot-callgraph $binary.0.0.*.bc >/dev/null 2> $TMPDIR/step${STEP}.log ; do
+      prefix="$TMPDIR/dot-files/$(basename $binary)"
+      while ! opt -dot-callgraph $binary.0.0.*.bc -callgraph-dot-filename-prefix $prefix >/dev/null 2> $TMPDIR/step${STEP}.log ; do
         echo -e "\e[93;1m[!]\e[0m Could not generate call graph. Repeating.."
       done
 
       #Remove repeated lines and rename
-      awk '!a[$0]++' callgraph.dot > callgraph.$(basename $binary).dot
-      rm callgraph.dot
+      awk '!a[$0]++' $(basename $binary).callgraph.dot > callgraph.$(basename $binary).dot
+      rm $(basename $binary).callgraph.dot
     done
 
     #Integrate several call graphs into one
@@ -77,13 +78,14 @@ if [ $RESUME -le $STEP ]; then
   else
 
     echo "($STEP) Constructing CG for $fuzzer.."
-    while ! opt -dot-callgraph $fuzzer.0.0.*.bc >/dev/null 2> $TMPDIR/step${STEP}.log ; do
+    prefix="$TMPDIR/dot-files/$(basename $fuzzer)"
+    while ! opt -dot-callgraph $fuzzer.0.0.*.bc -callgraph-dot-filename-prefix $prefix >/dev/null 2> $TMPDIR/step${STEP}.log ; do
       echo -e "\e[93;1m[!]\e[0m Could not generate call graph. Repeating.."
     done
 
     #Remove repeated lines and rename
-    awk '!a[$0]++' callgraph.dot > callgraph.1.dot
-    mv callgraph.1.dot callgraph.dot
+    awk '!a[$0]++' $(basename $fuzzer).callgraph.dot > callgraph.dot
+    rm $(basename $fuzzer).callgraph.dot
 
   fi
 fi
