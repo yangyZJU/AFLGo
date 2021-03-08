@@ -45,7 +45,7 @@ cmake -G "Ninja" \
 ninja cxx; ninja install-cxx
 
 # Install LLVMgold in bfd-plugins
-mkdir /usr/lib/bfd-plugins
+mkdir -p /usr/lib/bfd-plugins
 cp /usr/local/lib/libLTO.so /usr/lib/bfd-plugins
 cp /usr/local/lib/LLVMgold.so /usr/lib/bfd-plugins
 
