@@ -2,8 +2,17 @@
 set -e # exit on error
 
 # Build clang & LLVM
-LLVM_DEP_PACKAGES="build-essential make cmake ninja-build git binutils-gold binutils-dev curl wget python3-distutils"
+LLVM_DEP_PACKAGES="build-essential make cmake ninja-build git binutils-gold binutils-dev curl wget"
 apt-get install -y $LLVM_DEP_PACKAGES
+
+UBUNTU_VERSION=`cat /etc/os-release | grep VERSION_ID | cut -d= -f 2`
+UBUNTU_YEAR=`echo $UBUNTU_VERSION | cut -d. -f 1`
+UBUNTU_MONTH=`echo $UBUNTU_VERSION | cut -d. -f 2`
+
+if [[ "$UBUNTU_YEAR" > "16" || "$UBUNTU_MONTH" > "04" ]]
+then
+    apt-get install -y python3-distutils
+fi
 
 export CXX=g++
 export CC=gcc
