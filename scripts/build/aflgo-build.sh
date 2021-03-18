@@ -52,7 +52,7 @@ cp /usr/local/lib/LLVMgold.so /usr/lib/bfd-plugins
 # install some packages
 export LC_ALL=C
 apt-get update
-apt install -y python-dev python3 python3-dev python3-pip autoconf automake libtool-bin python-bs4 # libclang-11.0-dev
+apt install -y python-dev python3 python3-dev python3-pip autoconf automake libtool-bin python-bs4 libboost-all-dev # libclang-11.0-dev
 python3 -m pip install --upgrade pip
 python3 -m pip install networkx pydot pydotplus
 
@@ -62,4 +62,5 @@ export CC=clang
 cd /afl
 make clean all
 pushd llvm_mode; make clean all; popd
+pushd distance_calculator; cmake -G Ninja ./; cmake --build ./; popd
 export AFLGO=/afl
