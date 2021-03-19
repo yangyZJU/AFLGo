@@ -70,7 +70,10 @@ def merge_callgraphs(dots, outfilepath):
 def opt_callgraph(args, binary):
     print(f"({STEP}) Constructing CG for {binary}..")
     dot_files = args.temporary_directory / DOT_DIR_NAME
-    cmd = ["opt", "-dot-callgraph", f"{binary}", "-o", "/dev/null"]
+    prefix = dot_files / f"{binary.name}"
+    cmd = ["opt", "-dot-callgraph", f"{binary}",
+           "-callgraph-dot-filename-prefix", prefix,
+           "-o", "/dev/null"]
     log_p = args.temporary_directory / f"step{STEP}.log"
     with log_p.open("w") as f:
         try:
@@ -82,7 +85,7 @@ def opt_callgraph(args, binary):
 def construct_callgraph(args, binaries):
     fuzzer = args.fuzzer_name
     dot_files = args.temporary_directory / DOT_DIR_NAME
-    callgraph = dot_files / CALLGRAPH_NAME
+    callgraph_out = dot_files / CALLGRAPH_NAME
 
     if fuzzer:
         tmp = next(args.binaries_directory.glob(f"{fuzzer.name}.0.0.*.bc"))
@@ -90,18 +93,19 @@ def construct_callgraph(args, binaries):
 
     for binary in binaries:
         opt_callgraph(args, binary)
-        remove_repeated_lines(
-                callgraph,
-                dot_files / f"callgraph.{binary.name}.dot")
-        callgraph.unlink()
+        temp = dot_files / f"{binary.name}.callgraph.temp.dot"
+        callgraph = dot_files / f"{binary.name}.callgraph.dot"
+        callgraph.replace(temp)     # return only works with py >= 3.8 :(
+        remove_repeated_lines(temp, callgraph)
+        temp.unlink()
 
     # The goal is to have one file called "callgraph.dot"
     if fuzzer:
-        cg = dot_files / f"callgraph.{binary.name}.dot"
-        cg.replace(callgraph)
+        cg = dot_files / f"{binary.name}.callgraph.dot"
+        cg.replace(callgraph_out)
     else:
-        callgraphs = dot_files.glob("callgraph.*.dot")
-        merge_callgraphs(callgraphs, callgraph)
+        callgraphs = dot_files.glob("*.callgraph.dot")
+        merge_callgraphs(callgraphs, callgraph_out)
     next_step(args)
 
 
