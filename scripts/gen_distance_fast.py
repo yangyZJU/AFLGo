@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 STEP = 0
-STATE_FN = "state"
+STATE_FN = "state-fast"
 DOT_DIR_NAME = "dot-files"
 CALLGRAPH_NAME = "callgraph.dot"
 PROJ_ROOT = Path(__file__).resolve().parent.parent
@@ -127,12 +127,9 @@ def exec_distance_prog(dot, targets, out, names, cg_distance=None,
     if cg_distance is not None and cg_callsites is not None:
         cmd.extend(["-c", cg_distance,
                     "-s", cg_callsites])
-    devn = subprocess.DEVNULL
-    r = subprocess.run(cmd, stdout=devn, stderr=devn).returncode
-    if r != 0:
-        print("cfg distance calculator failed while calculating "
-              f"distance for {targets}.", file=sys.stderr)
-        sys.exit(-1)
+    pipe = subprocess.PIPE
+    r = subprocess.run(cmd, stdout=pipe, stderr=pipe, check=True)
+    return r
 
 
 def dd_cleanup(cfg):
@@ -154,7 +151,6 @@ def merge_distance_files(cfg_cg_path, output):
 
 
 def calculating_distances(args):
-    print(f"({STEP}) Computing distance for callgraph")
     dot_files = args.temporary_directory / DOT_DIR_NAME
     bbcalls = args.temporary_directory / "BBcalls.txt"
     bbnames = args.temporary_directory / "BBnames.txt"
@@ -164,12 +160,26 @@ def calculating_distances(args):
     callgraph = dot_files / CALLGRAPH_NAME
     callgraph_distance = args.temporary_directory / "callgraph.distance.txt"
 
-    exec_distance_prog(
-            callgraph,
-            ftargets,
-            callgraph_distance,
-            fnames,
-            py_version=args.python_only)
+    if STEP == 1:
+        print(f"({STEP}) Computing distance for callgraph")
+        log_p = args.temporary_directory / f"step{STEP}.log"
+        try:
+            r = exec_distance_prog(
+                    callgraph,
+                    ftargets,
+                    callgraph_distance,
+                    fnames,
+                    py_version=args.python_only)
+        except subprocess.CalledProcessError as err:
+            with log_p.open("w") as f:
+                f.write(err.stderr.decode())
+            abort(args)
+        if not callgraph_distance.exists():
+            with log_p.open("w") as f:
+                f.write(r.stdout.decode())
+                f.write(r.stderr.decode())
+            abort(args)
+        next_step(args)
 
     with callgraph.open("r") as f:
         callgraph_dot = f.read()
@@ -195,7 +205,15 @@ def calculating_distances(args):
     with ThreadPoolExecutor(max_workers=mp.cpu_count()) as executor:
         results = executor.map(calculate_cfg_distance_from_file,
                                dot_files.glob("cfg.*.dot"))
-    for r in results: pass  # forward Exceptions
+
+    try:
+        for r in results: pass  # forward Exceptions
+    except subprocess.CalledProcessError as err:
+        log_p = args.temporary_directory / f"step{STEP}.log"
+        with log_p.open("w") as f:
+            f.write(err.stderr.decode())
+        abort(args)
+
     print(f"({STEP}) Done computing distance for CFG")
     merge_distance_files(
             dot_files,

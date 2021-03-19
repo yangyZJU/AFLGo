@@ -203,7 +203,7 @@ std::vector<vertex_desc> cfg_calculation(
 std::ifstream open_file(const std::string &filename) {
     std::ifstream filestream(filename);
     if (not filestream) {
-        cerr << "Error: " << strerror(errno);
+        cerr << "Error: " << strerror(errno) << ": " << filename << "\n";
         exit(1);
     }
     return filestream;
