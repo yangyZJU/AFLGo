@@ -282,9 +282,9 @@ def main():
         tmp = args.binaries_directory.glob(f"{args.fuzzer_name}.0.0.*.bc")
         args.fuzzer_name = args.binaries_directory / args.fuzzer_name
         if not args.fuzzer_name.exists() or args.fuzzer_name.is_dir():
-            parser.error(f"Couldn't find {args.fuzzer}.")
+            parser.error(f"Couldn't find {args.fuzzer_name}.")
         if len(list(tmp)) == 0:
-            parser.error(f"Couldn't find bytecode for fuzzer {args.fuzzer} "
+            parser.error(f"Couldn't find bytecode for fuzzer {args.fuzzer_name} "
                          f"in folder {args.binaries_directory}.")
 
     STEP = get_resume(args)
