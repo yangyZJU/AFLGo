@@ -156,7 +156,7 @@ If your compilation crashes in this step, have a look at Issue [#4](https://gith
 ```bash
 # Construct seed corpus
 mkdir in
-cp $SUBJECT/test/dtd* in
+cp -r $SUBJECT/test/dtd* in
 cp $SUBJECT/test/dtds/* in
 
 $AFLGO/afl-fuzz -S ef709ce2 -z exp -c 45m -i in -o out $SUBJECT/xmllint --valid --recover @@
