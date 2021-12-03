@@ -68,8 +68,9 @@ python3 -m pip install networkx pydot pydotplus
 export CXX=clang++
 export CC=clang
 # build AFLGo
-cd /aflgo
+git clone https://github.com/aflgo/aflgo.git
+cd aflgo
 make clean all
 pushd llvm_mode; make clean all; popd
 pushd distance_calculator; cmake -G Ninja ./; cmake --build ./; popd
-export AFLGO=/aflgo
+export AFLGO=`pwd`/aflgo
