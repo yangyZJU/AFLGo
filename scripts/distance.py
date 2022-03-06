@@ -115,7 +115,7 @@ if __name__ == '__main__':
   G = nx.DiGraph(nx.drawing.nx_pydot.read_dot(args.dot))
   print (nx.info(G))
 
-  is_cg = "Name: Call graph" in nx.info(G)
+  is_cg = "Call graph" in nx.info(G)
   print ("\nWorking in %s mode.." % ("CG" if is_cg else "CFG"))
 
   # Process as ControlFlowGraph
